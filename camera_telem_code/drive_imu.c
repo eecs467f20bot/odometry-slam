@@ -70,6 +70,14 @@ double right_goal = 0;
 double left_current = 0;
 double right_current = 0;
 
+// Save current pose 
+double x_vel = 0;
+double y_vel = 0;
+double angle_estimate = 0;
+double x_accel = 0;
+double y_accel = 0;
+double angular_vel_estimate = 0;
+
 int mot_l_pol;
 int mot_r_pol;
 int enc_l_pol;
@@ -234,6 +242,11 @@ void publish_imu_data() {
 	imu_msg.gyro[1] = imu_data.gyro[1] * DEG_TO_RAD;
 	imu_msg.gyro[2] = imu_data.gyro[2] * DEG_TO_RAD;
 
+	imu_msg.x_estim = x_accel;
+	imu_msg.y_estim = x_accel;
+	imu_msg.theta_estim = angular_vel_estimate;
+
+
     	mbot_imu_t_publish(lcm, MBOT_IMU_CHANNEL, &imu_msg);
 }
 /*******************************************************************************
@@ -253,6 +266,10 @@ void publish_encoder_msg(){
     encoder_msg.rightticks = enc_r_pol * rc_encoder_eqep_read(2);
     encoder_msg.left_delta = encoder_msg.leftticks - prev_leftticks;
     encoder_msg.right_delta = encoder_msg.rightticks - prev_rightticks;
+    x_accel = 0;
+    y_accel = 0;
+    angular_vel = 0;
+
 
     double time_delta = (double)(encoder_msg.utime - lasttime) / 1000000000.0;
     lasttime = encoder_msg.utime;
@@ -261,12 +278,22 @@ void publish_encoder_msg(){
 
     double forward_vel = ((encoder_msg.left_delta + encoder_msg.right_delta) / 2.0) * (2 * 3.14159265 * 0.042) / (20 * ENCODER_CONVERSION);
     double angular_vel = ((encoder_msg.right_delta - encoder_msg.left_delta) / 0.11) * ((2 * 3.14159265 * 0.042) / (20 * ENCODER_CONVERSION));
+    angle_estimate += angular_vel;
     forward_vel = (forward_vel / (float)(time_delta));
     angular_vel = (angular_vel / (float)(time_delta));
+    angular_vel_estimate = angular_vel;
     
     // Estimate left and right forward velocities
     left_current = ((2.0*3.1415*0.042)/(20*ENCODER_CONVERSION))*(encoder_msg.left_delta)*(1.0/(float)(time_delta));
     right_current = ((2.0*3.1415*0.042)/(20*ENCODER_CONVERSION))*(encoder_msg.right_delta)*(1.0/(float)(time_delta));
+    x_vel_current = (forward_vel*(float)(time_delta))*cos(angle_estimate);
+    y_vel_current = (forward_vel*(float)(time_delta))*sin(angle_estimate);
+    x_accel = (x_vel_current - x_vel) / (float)(time_delta);
+    y_accel = (y_vel_current - y_vel) / (float)(time_delta);
+    x_vel = x_vel_current;
+    y_vel = y_vel_current;
+
+
 
     // printf(" ENC: %lld | %lld  - v: %f | w: %f \r", encoder_msg.leftticks, encoder_msg.rightticks, forward_vel, angular_vel);
     

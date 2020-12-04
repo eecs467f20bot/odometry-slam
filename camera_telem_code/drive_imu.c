@@ -1,8 +1,8 @@
 /*******************************************************************************
-* drive_simple.c
-*
-* 
-*******************************************************************************/
+ * drive_simple.c
+ *
+ * 
+ *******************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -104,9 +104,9 @@ stdev_calc angle_accel_uncertainty_calc;
 rc_mpu_data_t imu_data;
 
 /*******************************************************************************
-* int main() 
-*
-*******************************************************************************/
+ * int main() 
+ *
+ *******************************************************************************/
 int main(int argc, char *argv[]){
     //check args
     if( argc != 5 ) {
@@ -114,7 +114,7 @@ int main(int argc, char *argv[]){
         printf("Example: test_simple -1 1 -1 1 0.1 0.001 0.001\n");
         return 0;
     }
-    
+
     difference_init(&x_accel_diff, 4, 1);
     difference_init(&y_accel_diff, 4,1);
     difference_init(&angle_accel_diff, 4,1);
@@ -129,40 +129,40 @@ int main(int argc, char *argv[]){
     enc_r_pol = atoi(argv[4]);
 
     if( ((mot_l_pol != 1)&(mot_l_pol != -1)) |
-        ((mot_r_pol != 1)&(mot_r_pol != -1)) |
-        ((enc_l_pol != 1)&(enc_l_pol != -1)) |
-        ((enc_r_pol != 1)&(enc_r_pol != -1))){
+            ((mot_r_pol != 1)&(mot_r_pol != -1)) |
+            ((enc_l_pol != 1)&(enc_l_pol != -1)) |
+            ((enc_r_pol != 1)&(enc_r_pol != -1))){
         printf("Usage: polarities must be -1 or 1\n");
         return 0;
     }
 
-	// make sure another instance isn't running
+    // make sure another instance isn't running
     if(rc_kill_existing_process(2.0)<-2) return -1;
 
-	// start signal handler so we can exit cleanly
+    // start signal handler so we can exit cleanly
     if(rc_enable_signal_handler()==-1){
-    	fprintf(stderr,"ERROR: failed to start signal handler\n");
+        fprintf(stderr,"ERROR: failed to start signal handler\n");
         return -1;
     }
 
-	if(rc_motor_init()<0){
+    if(rc_motor_init()<0){
         fprintf(stderr,"ERROR: failed to initialze motors\n");
         return -1;
     }
 
-	rc_mpu_config_t imu_config = rc_mpu_default_config();
-	imu_config.dmp_sample_rate = 50;
-	imu_config.dmp_fetch_accel_gyro=1;
+    rc_mpu_config_t imu_config = rc_mpu_default_config();
+    imu_config.dmp_sample_rate = 50;
+    imu_config.dmp_fetch_accel_gyro=1;
 
-	if(rc_mpu_initialize_dmp(&imu_data, imu_config)){
-		fprintf(stderr,"ERROR: can't talk to IMU! Exiting.\n");
-		return -1;
-	}
+    if(rc_mpu_initialize_dmp(&imu_data, imu_config)){
+        fprintf(stderr,"ERROR: can't talk to IMU! Exiting.\n");
+        return -1;
+    }
 
-	rc_mpu_set_dmp_callback(publish_imu_data);
+    rc_mpu_set_dmp_callback(publish_imu_data);
 
-	//rc_mpu_calibrate_accel_routine(rc_mpu_default_config());
-	//rc_mpu_calibrate_gyro_routine(rc_mpu_default_config());
+    //rc_mpu_calibrate_accel_routine(rc_mpu_default_config());
+    //rc_mpu_calibrate_gyro_routine(rc_mpu_default_config());
 
     lcm = lcm_create("udpm://239.255.76.67:7667?ttl=1");
 
@@ -175,39 +175,39 @@ int main(int argc, char *argv[]){
     PID_EnableSaturation(&right_pid, -1, 1);
 
     // make PID file to indicate your project is running
-	// due to the check made on the call to rc_kill_existing_process() above
-	// we can be fairly confident there is no PID file already and we can
-	// make our own safely.
-	// rc_make_pid_file();
+    // due to the check made on the call to rc_kill_existing_process() above
+    // we can be fairly confident there is no PID file already and we can
+    // make our own safely.
+    // rc_make_pid_file();
 
-	// done initializing so set state to RUNNING
+    // done initializing so set state to RUNNING
     rc_encoder_eqep_init();
     rc_set_state(RUNNING);
-    
+
     watchdog_timer = 0.0;
-    
+
     // Uncomment this line to enable forward velocity from pi
     simple_motor_command_t_subscribe(lcm, "MBOT_MOTOR_COMMAND_SIMPLE", &simple_motor_command_handler, NULL);
     printf("Running...\n");
-	while(rc_get_state()==RUNNING){
+    while(rc_get_state()==RUNNING){
         watchdog_timer += 0.01;
         if(watchdog_timer >= 0.25)
         {
-	    left_goal = 0;
-	    right_goal = 0;
+            left_goal = 0;
+            right_goal = 0;
             printf("timeout...\r");
         }
-		// define a timeout (for erroring out) and the delay time
+        // define a timeout (for erroring out) and the delay time
         publish_encoder_msg();
         change_pwm_for_drive();
         lcm_handle_timeout(lcm, 1);
         rc_nanosleep(1E9 / 100); //handle at 10Hz
-	}
+    }
     rc_motor_cleanup();
     rc_encoder_eqep_cleanup();
-	rc_mpu_power_off();
+    rc_mpu_power_off();
     lcm_destroy(lcm);
-	// rc_remove_pid_file();   // remove pid file LAST
+    // rc_remove_pid_file();   // remove pid file LAST
 
     return 0;
 }
@@ -232,11 +232,11 @@ void change_pwm_for_drive()
 
 
 /*******************************************************************************
-*  simple_motor_command_handler()
-*
-*  sets motor PWMS from incoming lcm message
-*
-*******************************************************************************/
+ *  simple_motor_command_handler()
+ *
+ *  sets motor PWMS from incoming lcm message
+ *
+ *******************************************************************************/
 //////////////////////////////////////////////////////////////////////////////
 /// TODO: Create a handler that receives lcm message simple_motor_command_t and
 /// sets motor PWM according to the recieved message.
@@ -247,10 +247,10 @@ void change_pwm_for_drive()
 //////////////////////////////////////////////////////////////////////////////
 void simple_motor_command_handler(const lcm_recv_buf_t *rbuf, const char* channel, const simple_motor_command_t * msg, void * user) 
 {
-	watchdog_timer = 0.0;
-	left_goal = msg->forward_velocity - 0.055 * msg->angular_velocity;
-	right_goal = msg->forward_velocity + 0.055 * msg->angular_velocity;
-	
+    watchdog_timer = 0.0;
+    left_goal = msg->forward_velocity - 0.055 * msg->angular_velocity;
+    right_goal = msg->forward_velocity + 0.055 * msg->angular_velocity;
+
 }
 
 void publish_imu_data() {
@@ -259,16 +259,16 @@ void publish_imu_data() {
         return;
     }
 
-	mbot_imu_t imu_msg;
-	imu_msg.utime = rc_nanos_since_epoch();
-	
-	imu_msg.accel[0] = imu_data.accel[0];
-	imu_msg.accel[1] = imu_data.accel[1];
-	imu_msg.accel[2] = imu_data.accel[2];
+    mbot_imu_t imu_msg;
+    imu_msg.utime = rc_nanos_since_epoch();
 
-	imu_msg.gyro[0] = imu_data.gyro[0] * DEG_TO_RAD;
-	imu_msg.gyro[1] = imu_data.gyro[1] * DEG_TO_RAD;
-	imu_msg.gyro[2] = imu_data.gyro[2] * DEG_TO_RAD;
+    imu_msg.accel[0] = imu_data.accel[0];
+    imu_msg.accel[1] = imu_data.accel[1];
+    imu_msg.accel[2] = imu_data.accel[2];
+
+    imu_msg.gyro[0] = imu_data.gyro[0] * DEG_TO_RAD;
+    imu_msg.gyro[1] = imu_data.gyro[1] * DEG_TO_RAD;
+    imu_msg.gyro[2] = imu_data.gyro[2] * DEG_TO_RAD;
 
     imu_msg.odometry_gyro[0] = 0;
     imu_msg.odometry_gyro[1] = 0;
@@ -277,17 +277,17 @@ void publish_imu_data() {
     imu_msg.odometry_accel[0] = x_accel/time_estimate;
     imu_msg.odometry_accel[1] = y_accel/time_estimate;
     imu_msg.odometry_accel[2] = 9.81;
-    
+
 
     imu_msg.odometry_gyro_uncertainty[0] = 0;
     imu_msg.odometry_gyro_uncertainty[1] = 0;
     imu_msg.odometry_gyro_uncertainty[2] = stdev_calc_march(&angle_accel_uncertainty_calc, imu_msg.odometry_gyro[2]);
-;
-    
+    ;
+
     imu_msg.odometry_accel_uncertainty[0] = stdev_calc_march(&x_accel_uncertainty_calc, imu_msg.odometry_accel[0]);
-	imu_msg.odometry_accel_uncertainty[0] = stdev_calc_march(&y_accel_uncertainty_calc, imu_msg.odometry_accel[1]);
-	imu_msg.odometry_accel_uncertainty[0] = 0;
-	
+    imu_msg.odometry_accel_uncertainty[1] = stdev_calc_march(&y_accel_uncertainty_calc, imu_msg.odometry_accel[1]);
+    imu_msg.odometry_accel_uncertainty[2] = 0;
+
     // Don't publish if we don't have enough to calculate stdev
     if(imu_msg.odometry_accel_uncertainty[0] == DEFAULT_OUT) {
         return;
@@ -296,11 +296,11 @@ void publish_imu_data() {
     mbot_imu_t_publish(lcm, MBOT_IMU_CHANNEL, &imu_msg);
 }
 /*******************************************************************************
-* void publish_encoder_msg()
-*
-* publishes LCM message of encoder reading
-* 
-*******************************************************************************/
+ * void publish_encoder_msg()
+ *
+ * publishes LCM message of encoder reading
+ * 
+ *******************************************************************************/
 void publish_encoder_msg(){
 
     static int64_t prev_leftticks = 0, prev_rightticks = 0;
@@ -312,8 +312,8 @@ void publish_encoder_msg(){
     encoder_msg.rightticks = enc_r_pol * rc_encoder_eqep_read(2);
     encoder_msg.left_delta = encoder_msg.leftticks - prev_leftticks;
     encoder_msg.right_delta = encoder_msg.rightticks - prev_rightticks;
-    
-    
+
+
 
 
     double time_delta = (double)(encoder_msg.utime - lasttime) / 1000000000.0;
@@ -323,13 +323,13 @@ void publish_encoder_msg(){
 
     double forward_vel = ((encoder_msg.left_delta + encoder_msg.right_delta) / 2.0) * (2 * 3.14159265 * 0.042) / (20 * ENCODER_CONVERSION);
     double angular_vel = ((encoder_msg.right_delta - encoder_msg.left_delta) / 0.11) * ((2 * 3.14159265 * 0.042) / (20 * ENCODER_CONVERSION));
-    
-    
+
+
     angle_estimate += angular_vel;
     forward_vel = (forward_vel / (float)(time_delta));
     angular_vel = (angular_vel / (float)(time_delta));
     angular_vel_estimate = angular_vel;
-    
+
     // Estimate left and right forward velocities
     left_current = ((2.0*3.1415*0.042)/(20*ENCODER_CONVERSION))*(encoder_msg.left_delta)*(1.0/(float)(time_delta));
     right_current = ((2.0*3.1415*0.042)/(20*ENCODER_CONVERSION))*(encoder_msg.right_delta)*(1.0/(float)(time_delta));
@@ -347,9 +347,9 @@ void publish_encoder_msg(){
 
 
     // printf(" ENC: %lld | %lld  - v: %f | w: %f \r", encoder_msg.leftticks, encoder_msg.rightticks, forward_vel, angular_vel);
-    
+
     //printf("Forward velocity: %f, Angular velocity: %f \r", forward_vel, angular_vel);
-    
+
     //mbot_encoder_t_publish(lcm, MBOT_ENCODER_CHANNEL, &encoder_msg);
 }
 
@@ -380,6 +380,6 @@ double PID_March(PID *pid, double error) {
         output = (output > pid->upper_saturation) ? pid->upper_saturation : output;
         output = (output < pid->lower_saturation) ? pid->lower_saturation : output;
     }
-    
+
     return output;
 }

@@ -7,6 +7,10 @@
 #include <sys/types.h>
 #include <getopt.h>
 
+
+double DEFAULT_OUT = -9999; 
+
+
 typedef struct differenceCalculator_type
 {
     double buffer[20];
@@ -65,7 +69,7 @@ double stdev_calc_march(stdev_calc *diff, double next_val) {
         diff->buffer[diff->bufferSize - 1] = next_val;
     }
     if(diff->currentFilled < diff->bufferSize) {
-        return -9999;
+        return DEFAULT_OUT;
     }
     double output = 0;
     for(int i = 0; i < diff->bufferSize; i++) {
@@ -149,7 +153,7 @@ double difference_march(difference *diff, double next_val)
 
     //Okay - the buffer works. Now, I need to return the output:
     if(diff->currentFilled < diff->bufferSize) {
-        return -9999;
+        return DEFAULT_OUT;
     }
     else{
         double output = 0;

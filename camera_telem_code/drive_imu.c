@@ -80,7 +80,9 @@ double y_vel = 0;
 double angle_estimate = 0;
 double x_accel = 0;
 double y_accel = 0;
+double angle_accel_estimate = 0;
 double angular_vel_estimate = 0;
+double time_estimate = 0;
 
 int mot_l_pol;
 int mot_r_pol;
@@ -89,6 +91,15 @@ int enc_r_pol;
 
 PID left_pid;
 PID right_pid;
+
+difference x_accel_diff;
+difference y_accel_diff;
+difference angle_accel_diff;
+
+
+stdev_calc x_accel_uncertainty_calc;
+stdev_calc y_accel_uncertainty_calc;
+stdev_calc angle_accel_uncertainty_calc;
 
 rc_mpu_data_t imu_data;
 
@@ -104,6 +115,14 @@ int main(int argc, char *argv[]){
         return 0;
     }
     
+    difference_init(&x_accel_diff, 4, 1);
+    difference_init(&y_accel_diff, 4,1);
+    difference_init(&angle_accel_diff, 4,1);
+
+    stdev_calc_init(&x_accel_uncertainty_calc,10);
+    stdev_calc_init(&y_accel_uncertainty_calc,10);
+    stdev_calc_init(&angle_accel_uncertainty_calc,10);
+
     mot_l_pol = atoi(argv[1]);
     mot_r_pol = atoi(argv[2]);
     enc_l_pol = atoi(argv[3]);
@@ -235,6 +254,11 @@ void simple_motor_command_handler(const lcm_recv_buf_t *rbuf, const char* channe
 }
 
 void publish_imu_data() {
+    // Don't publish if we're not ready yet
+    if(x_accel == DEFAULT_OUT){
+        return;
+    }
+
 	mbot_imu_t imu_msg;
 	imu_msg.utime = rc_nanos_since_epoch();
 	
@@ -246,12 +270,29 @@ void publish_imu_data() {
 	imu_msg.gyro[1] = imu_data.gyro[1] * DEG_TO_RAD;
 	imu_msg.gyro[2] = imu_data.gyro[2] * DEG_TO_RAD;
 
-	imu_msg.x_estim = x_accel;
-	imu_msg.y_estim = x_accel;
-	imu_msg.theta_estim = angular_vel_estimate;
+    imu_msg.odometry_gyro[0] = angle_accel_estimate;
+    imu_msg.odometry_gyro[1] = 0;
+    imu_msg.odometry_gyro[2] = 0;
 
+    imu_msg.odometry_accel[0] = x_accel/time_estimate;
+    imu_msg.odometry_accel[1] = y_accel/time_estimate;
+    imu_msg.odometry_accel[2] = 9.8;
+    
 
-    	mbot_imu_t_publish(lcm, MBOT_IMU_CHANNEL, &imu_msg);
+    imu_msg.odometry_gyro_uncertainty[0] = stdev_calc_march(&angle_accel_uncertainty_calc, imu_msg.odometry_gyro[2]);
+    imu_msg.odometry_gyro_uncertainty[1] = 0;
+    imu_msg.odometry_gyro_uncertainty[2] = 0;
+    
+    imu_msg.odometry_accel_uncertainty[0] = stdev_calc_march(&x_accel_uncertainty_calc, imu_msg.odometry_accel[0]);
+	imu_msg.odometry_accel_uncertainty[0] = stdev_calc_march(&y_accel_uncertainty_calc, imu_msg.odometry_accel[1]);
+	imu_msg.odometry_accel_uncertainty[0] = 0;
+	
+    // Don't publish if we don't have enough to calculate stdev
+    if(imu_msg.odometry_accel_uncertainty[0] == DEFAULT_OUT) {
+        return;
+    }
+    //Otherwise publish!
+    mbot_imu_t_publish(lcm, MBOT_IMU_CHANNEL, &imu_msg);
 }
 /*******************************************************************************
 * void publish_encoder_msg()
@@ -270,9 +311,8 @@ void publish_encoder_msg(){
     encoder_msg.rightticks = enc_r_pol * rc_encoder_eqep_read(2);
     encoder_msg.left_delta = encoder_msg.leftticks - prev_leftticks;
     encoder_msg.right_delta = encoder_msg.rightticks - prev_rightticks;
-    x_accel = 0;
-    y_accel = 0;
-    angular_vel = 0;
+    
+    
 
 
     double time_delta = (double)(encoder_msg.utime - lasttime) / 1000000000.0;
@@ -282,6 +322,8 @@ void publish_encoder_msg(){
 
     double forward_vel = ((encoder_msg.left_delta + encoder_msg.right_delta) / 2.0) * (2 * 3.14159265 * 0.042) / (20 * ENCODER_CONVERSION);
     double angular_vel = ((encoder_msg.right_delta - encoder_msg.left_delta) / 0.11) * ((2 * 3.14159265 * 0.042) / (20 * ENCODER_CONVERSION));
+    
+    
     angle_estimate += angular_vel;
     forward_vel = (forward_vel / (float)(time_delta));
     angular_vel = (angular_vel / (float)(time_delta));
@@ -290,10 +332,14 @@ void publish_encoder_msg(){
     // Estimate left and right forward velocities
     left_current = ((2.0*3.1415*0.042)/(20*ENCODER_CONVERSION))*(encoder_msg.left_delta)*(1.0/(float)(time_delta));
     right_current = ((2.0*3.1415*0.042)/(20*ENCODER_CONVERSION))*(encoder_msg.right_delta)*(1.0/(float)(time_delta));
-    x_vel_current = (forward_vel*(float)(time_delta))*cos(angle_estimate);
-    y_vel_current = (forward_vel*(float)(time_delta))*sin(angle_estimate);
-    x_accel = (x_vel_current - x_vel) / (float)(time_delta);
-    y_accel = (y_vel_current - y_vel) / (float)(time_delta);
+    double x_vel_current = (forward_vel*(float)(time_delta))*cos(angle_estimate);
+    double y_vel_current = (forward_vel*(float)(time_delta))*sin(angle_estimate);
+    time_estimate = (float)(time_delta);
+
+    x_accel = difference_march(&x_accel_diff, x_vel_current);
+    y_accel = difference_march(&y_accel_diff, y_vel_current);
+    angle_accel_estimate = difference_march(&angle_accel_diff,angular_vel);
+
     x_vel = x_vel_current;
     y_vel = y_vel_current;
 

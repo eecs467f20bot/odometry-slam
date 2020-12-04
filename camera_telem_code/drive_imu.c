@@ -22,6 +22,7 @@
 #include <rc/mpu.h>
 #include <rc/time.h>
 #include <rc/motor.h>
+#include "difference.h"
 
 //LCM
 lcm_t * lcm;
@@ -50,6 +51,9 @@ typedef struct PID_type {
 void PID_Init(PID *pid, double Kp, double Ki, double Kd);
 void PID_EnableSaturation(PID *pid, double lower, double upper);
 double PID_March(PID *pid, double error);
+
+
+
 
 //global watchdog_timer to cut off motors if no lcm messages recieved
 float watchdog_timer;

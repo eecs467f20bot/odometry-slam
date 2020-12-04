@@ -4,9 +4,10 @@ struct mbot_imu_t
 
     float gyro[3];
     float accel[3];
-    float x_estim;
-    float y_estim;
-    float theta_estim;
+    float odometry_gyro[3];
+    float odometry_accel[3];
+    float odometry_gyro_uncertainty[3];
+    float odometry_accel_uncertainty[3];
     float mag[3];
     float tb_angles[3];
     float temp;

@@ -20,6 +20,14 @@ class mbot_imu_t
 
         float      accel[3];
 
+        float      odometry_gyro[3];
+
+        float      odometry_accel[3];
+
+        float      odometry_gyro_uncertainty[3];
+
+        float      odometry_accel_uncertainty[3];
+
         float      mag[3];
 
         float      tb_angles[3];
@@ -131,6 +139,18 @@ int mbot_imu_t::_encodeNoHash(void *buf, int offset, int maxlen) const
     tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->accel[0], 3);
     if(tlen < 0) return tlen; else pos += tlen;
 
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->odometry_gyro[0], 3);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->odometry_accel[0], 3);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->odometry_gyro_uncertainty[0], 3);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->odometry_accel_uncertainty[0], 3);
+    if(tlen < 0) return tlen; else pos += tlen;
+
     tlen = __float_encode_array(buf, offset + pos, maxlen - pos, &this->mag[0], 3);
     if(tlen < 0) return tlen; else pos += tlen;
 
@@ -156,6 +176,18 @@ int mbot_imu_t::_decodeNoHash(const void *buf, int offset, int maxlen)
     tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->accel[0], 3);
     if(tlen < 0) return tlen; else pos += tlen;
 
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->odometry_gyro[0], 3);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->odometry_accel[0], 3);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->odometry_gyro_uncertainty[0], 3);
+    if(tlen < 0) return tlen; else pos += tlen;
+
+    tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->odometry_accel_uncertainty[0], 3);
+    if(tlen < 0) return tlen; else pos += tlen;
+
     tlen = __float_decode_array(buf, offset + pos, maxlen - pos, &this->mag[0], 3);
     if(tlen < 0) return tlen; else pos += tlen;
 
@@ -176,13 +208,17 @@ int mbot_imu_t::_getEncodedSizeNoHash() const
     enc_size += __float_encoded_array_size(NULL, 3);
     enc_size += __float_encoded_array_size(NULL, 3);
     enc_size += __float_encoded_array_size(NULL, 3);
+    enc_size += __float_encoded_array_size(NULL, 3);
+    enc_size += __float_encoded_array_size(NULL, 3);
+    enc_size += __float_encoded_array_size(NULL, 3);
+    enc_size += __float_encoded_array_size(NULL, 3);
     enc_size += __float_encoded_array_size(NULL, 1);
     return enc_size;
 }
 
 uint64_t mbot_imu_t::_computeHash(const __lcm_hash_ptr *)
 {
-    uint64_t hash = 0x2e9f8f63a10a11c1LL;
+    uint64_t hash = 0x12af1d0eae20141dLL;
     return (hash<<1) + ((hash>>63)&1);
 }
 

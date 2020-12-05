@@ -282,7 +282,6 @@ void publish_imu_data() {
     imu_msg.odometry_gyro_uncertainty[0] = 0;
     imu_msg.odometry_gyro_uncertainty[1] = 0;
     imu_msg.odometry_gyro_uncertainty[2] = stdev_calc_march(&angle_accel_uncertainty_calc, imu_msg.odometry_gyro[2]);
-    ;
 
     imu_msg.odometry_accel_uncertainty[0] = stdev_calc_march(&x_accel_uncertainty_calc, imu_msg.odometry_accel[0]);
     imu_msg.odometry_accel_uncertainty[1] = stdev_calc_march(&y_accel_uncertainty_calc, imu_msg.odometry_accel[1]);

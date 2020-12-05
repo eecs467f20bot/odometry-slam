@@ -69,7 +69,7 @@ class IMU_Handler {
 		// IMU Data - x and y are 0 by assumption
 		vector<float> gyro_data_z;
 		// Noise Data
-		float accel_noise[] = {0.0, 0.0};
+		float accel_noise[2] = {0.0, 0.0};
 		float gyro_noise = 0.0;
 
 		float calc_stdev(vector<float> &data)
@@ -77,17 +77,17 @@ class IMU_Handler {
 			// Check that the size of both windows are the same
 			assert(data.size() == n);
 			//Mean Variables
-			mean_sing = 0;
-			mean_sq = 0;
+			float mean_sing = 0;
+			float mean_sq = 0;
 
-			for(int i = 0; i < n; i++)
+			for(unsigned int i = 0; i < n; i++)
 			{
 				mean_sing += (data[i] * data[i])/float(n);
 				mean_sq += data[i]/float(n);
 			}
 
 			// sqrt(E(X^2) - E(X)^2)
-			return sqrt(mean_sq - (mean_sing * mean_sing))
+			return sqrt(mean_sq - (mean_sing * mean_sing));
 		}
 
 		void update_data(float accel_x, float accel_y, float gyro_z)
@@ -146,10 +146,10 @@ class IMU_Handler {
 			if (start_time == -1) 
 				start_time = (double)msg->utime / 1.0e9;
 
-			update_data(msg->accel[0], msg->accel[1], msg->accel[2], msg->gyro[0], msg->gyro[1], msg->gyro[2]);
+			update_data(msg->accel[0], msg->accel[1], msg->gyro[2]);
 			update_noise();
 			vector<float> data = odo_iner_kf(msg->odometry_accel[0], msg->odometry_accel[1], msg->odometry_gyro[2], 
-									msg->odometry_accel_uncertainty[0], msg->odometry_accel_uncertainty[1], msg->odometry_gryo_uncertainty[2]);
+									msg->odometry_accel_uncertainty[0], msg->odometry_accel_uncertainty[1], msg->odometry_gyro_uncertainty[2]);
 									
 			IMU_Data.push_back(ORB_SLAM3::IMU::Point(data[0], data[1], 9.81, 0.0, 0.0, data[2], (double)msg->utime / 1.0e9 - start_time));
 		}

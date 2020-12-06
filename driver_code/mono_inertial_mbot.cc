@@ -25,6 +25,8 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <string>
+#include <cassert>
 
 #include <opencv2/core/core.hpp>
 
@@ -66,21 +68,28 @@ class IMU_Handler {
 		// Accel Data - Z is known at 9.8 by assumption
 		vector<float> accel_data_x;
 		vector<float> accel_data_y;
-		// IMU Data - x and y are 0 by assumption
+		vector<float> kf_accel_data_x;
+		vector<float> kf_accel_data_y;
+		// Gyro Data - x and y are 0 by assumption
 		vector<float> gyro_data_z;
+		vector<float> kf_gyro_data_z;
 		// Noise Data
-		float accel_noise[2] = {0.0, 0.0};
-		float gyro_noise = 0.0;
+		float accel_noise[4] = {0.0, 0.0, 0.0, 0.0};
+		float gyro_noise[2] = {0.0, 0.0};
+		// Log file
+		ofstream log_file;
+		//Counter
+		int data_count = 0;
 
 		float calc_stdev(vector<float> &data)
 		{
 			// Check that the size of both windows are the same
-			assert(data.size() == n);
+			assert(data.size() <= n);
 			//Mean Variables
 			float mean_sing = 0;
 			float mean_sq = 0;
 
-			for(unsigned int i = 0; i < n; i++)
+			for(unsigned int i = 0; i < data.size(); i++)
 			{
 				mean_sing += (data[i] * data[i])/float(n);
 				mean_sq += data[i]/float(n);
@@ -90,64 +99,100 @@ class IMU_Handler {
 			return sqrt(mean_sq - (mean_sing * mean_sing));
 		}
 
-		void update_data(float accel_x, float accel_y, float gyro_z)
+		void update_data(float data_pt, vector<float> &data_vec)
 		{
 			// Push accel data into window
-			accel_data_x.push_back(accel_x);
-			accel_data_y.push_back(accel_y);
-			// Push imu data into window
-			gyro_data_z.push_back(gyro_z);
-
+			data_vec.push_back(data_pt);
 			// If the window contains more than the desired amount, remove from the beginning 
-			// Accel Data
-			while(accel_data_x.size() > n)
-				accel_data_x.erase(accel_data_x.begin());
-			while(accel_data_y.size() > n)
-				accel_data_y.erase(accel_data_y.begin());
-			// IMU Data
-			while(gyro_data_z.size() > n)
-				gyro_data_z.erase(gyro_data_z.begin());
+			while(data_vec.size() > n)
+				data_vec.erase(data_vec.begin());
 
 			// Check if size within bounds
-			assert(accel_data_x.size() <= n);
-			assert(accel_data_y.size() <= n);
-			assert(gyro_data_z.size() <= n);
+			assert(data_vec.size() <= n);
 		}
 
 		void update_noise()
 		{
 			accel_noise[0] = calc_stdev(accel_data_x);
 			accel_noise[1] = calc_stdev(accel_data_y);
-			gyro_noise = calc_stdev(gyro_data_z);
+
+			gyro_noise[0] = calc_stdev(gyro_data_z);
+		}
+
+		void update_kf_noise()
+		{
+			accel_noise[2] = calc_stdev(kf_accel_data_x);
+			accel_noise[3] = calc_stdev(kf_accel_data_y);
+
+			gyro_noise[1] = calc_stdev(kf_gyro_data_z);
 		}
 
 		vector<float> odo_iner_kf(
 			float odo_ax, float odo_ay, float odo_gz, 
 			float odo_nax, float odo_nay, float odo_ngz
 		){
+			//return variable
 			vector<float> data;
 			
 			//Calculate Kalman Gains - K
 			float k_ax = odo_nax / (odo_nax + accel_noise[0]);
 			float k_ay = odo_nay / (odo_nay + accel_noise[1]);
-			float k_gz = odo_ngz / (odo_ngz + gyro_noise);
+			float k_gz = odo_ngz / (odo_ngz + gyro_noise[0]);
 			// Apply Kalman Filter
-			data.push_back(odo_ax + k_ax * (accel_data_x.back() - odo_ax));
-			data.push_back(odo_ay + k_ay * (accel_data_y.back() - odo_ay));
-			data.push_back(odo_gz + k_gz * (gyro_data_z.back() - odo_gz));
+			float kf_ax = odo_ax + k_ax * (accel_data_x.back() - odo_ax);
+			float kf_ay = odo_ay + k_ay * (accel_data_y.back() - odo_ay);
+			float kf_gz = odo_gz + k_gz * (gyro_data_z.back() - odo_gz);
+
+			//Update kf data windows
+			update_data(kf_ax, kf_accel_data_x);
+			update_data(kf_ay, kf_accel_data_y);
+			update_data(kf_gz, kf_gyro_data_z);
+
+			update_kf_noise();
+
+			//Log Noise to log file - count, i_ax, i_ay, i_gz, o_ax, o_ay, o_gz, kf_ax, kf_ay, kf_gz
+			log_file << data_count << " "
+					 << accel_noise[0] << " " 
+					 << accel_noise[1] << " " 
+					 << gyro_noise[0] << " " 
+					 << odo_nax << " " 
+					 << odo_nay << " " 
+					 << odo_ngz << " "
+					 << accel_noise[2] << " "
+					 << accel_noise[3] << " "
+					 << gyro_noise[1] << " "
+					 << endl;
+
+			//Increment data count
+			data_count++;
+
+			// Populate and return answer
+			data.push_back(kf_ax);
+			data.push_back(kf_ay);
+			data.push_back(kf_gz);
 
 			return data;
 		}
 
 	public:
-		~IMU_Handler() {}
+		IMU_Handler()
+		{
+			log_file.open("noise_log.txt");
+		}
+		~IMU_Handler() 
+		{
+			log_file.close();
+		}
 		
 		void handleMessage(const lcm::ReceiveBuffer* rbuf, const std::string &chan, const mbot_imu_t* msg) {
 			if (start_time == -1) 
 				start_time = (double)msg->utime / 1.0e9;
 
-			update_data(msg->accel[0], msg->accel[1], msg->gyro[2]);
+			update_data(msg->accel[0], accel_data_x);
+			update_data(msg->accel[1], accel_data_y);
+			update_data(msg->gyro[2], gyro_data_z);
 			update_noise();
+
 			vector<float> data = odo_iner_kf(msg->odometry_accel[0], msg->odometry_accel[1], msg->odometry_gyro[2], 
 									msg->odometry_accel_uncertainty[0], msg->odometry_accel_uncertainty[1], msg->odometry_gyro_uncertainty[2]);
 									

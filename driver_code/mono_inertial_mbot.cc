@@ -52,7 +52,17 @@ public:
 		if (start_time == -1) start_time = (double)msg->utime / 1.0e9;
 		cv::Mat data_mat(msg->data, true);
 		cv::Mat im(cv::imdecode(data_mat,0));
-		SLAM.TrackMonocular(im, (double)msg->utime / 1.0e9 - start_time, IMU_Data);
+		cv::Mat test = SLAM.TrackMonocular(im, (double)msg->utime / 1.0e9 - start_time, IMU_Data);
+		int width = test.cols;
+		int height = test.rows;
+		int stride = test.step;
+		uint8_t *data = test.data;
+		for(int i = 0; i < height; i++) {
+			for(int j = 0; j < width; j++) {
+				std::cout << data[i*stride + j] << " ";
+			}
+		}
+		std::cout << std::endl;
 		IMU_Data.clear();
 	}
 
@@ -151,17 +161,17 @@ class IMU_Handler {
 			update_kf_noise();
 
 			//Log Noise to log file - count, i_ax, i_ay, i_gz, o_ax, o_ay, o_gz, kf_ax, kf_ay, kf_gz
-			log_file << data_count << " "
-					 << accel_noise[0] << " " 
-					 << accel_noise[1] << " " 
-					 << gyro_noise[0] << " " 
-					 << odo_nax << " " 
-					 << odo_nay << " " 
-					 << odo_ngz << " "
-					 << accel_noise[2] << " "
-					 << accel_noise[3] << " "
-					 << gyro_noise[1] << " "
-					 << endl;
+			//log_file << data_count << " "
+			//		 << accel_noise[0] << " " 
+			//		 << accel_noise[1] << " " 
+			//		 << gyro_noise[0] << " " 
+			//		 << odo_nax << " " 
+			//		 << odo_nay << " " 
+			//		 << odo_ngz << " "
+			//		 << accel_noise[2] << " "
+			//		 << accel_noise[3] << " "
+			//		 << gyro_noise[1] << " "
+			//		 << endl;
 
 			//Increment data count
 			data_count++;

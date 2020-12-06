@@ -272,7 +272,7 @@ void publish_imu_data() {
 
     imu_msg.odometry_gyro[0] = 0;
     imu_msg.odometry_gyro[1] = 0;
-    imu_msg.odometry_gyro[2] = angle_accel_estimate;
+    imu_msg.odometry_gyro[2] = angle_accel_estimate/time_estimate;
 
     imu_msg.odometry_accel[0] = x_accel/time_estimate;
     imu_msg.odometry_accel[1] = y_accel/time_estimate;

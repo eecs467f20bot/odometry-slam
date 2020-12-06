@@ -91,8 +91,8 @@ class IMU_Handler {
 
 			for(unsigned int i = 0; i < data.size(); i++)
 			{
-				mean_sing += (data[i] * data[i])/float(n);
-				mean_sq += data[i]/float(n);
+				mean_sq += (data[i] * data[i])/float(n);
+				mean_sing += data[i]/float(n);
 			}
 
 			// sqrt(E(X^2) - E(X)^2)

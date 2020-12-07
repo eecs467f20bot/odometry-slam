@@ -40,6 +40,9 @@ using namespace std;
 
 vector<ORB_SLAM3::IMU::Point> IMU_Data;
 double start_time;
+double pos_x;
+double pos_y;
+double pos_z;
 
 class Image_Handler {
 
@@ -52,7 +55,12 @@ public:
 		if (start_time == -1) start_time = (double)msg->utime / 1.0e9;
 		cv::Mat data_mat(msg->data, true);
 		cv::Mat im(cv::imdecode(data_mat,0));
-		SLAM.TrackMonocular(im, (double)msg->utime / 1.0e9 - start_time, IMU_Data);
+		cv::Mat test = SLAM.TrackMonocular(im, (double)msg->utime / 1.0e9 - start_time, IMU_Data);
+                if (!test.empty()) {
+			pos_x = test.at<double>(0,3);
+			pos_y = test.at<double>(1,3);
+			pos_z = test.at<double>(2,3);			
+		}
 		IMU_Data.clear();
 	}
 
@@ -161,6 +169,9 @@ class IMU_Handler {
 					 << accel_noise[2] << " "
 					 << accel_noise[3] << " "
 					 << gyro_noise[1] << " "
+					 << pos_x << " "
+					 << pos_y << " "
+					 << pos_z << " "
 					 << endl;
 
 			//Increment data count

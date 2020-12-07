@@ -197,7 +197,7 @@ class IMU_Handler {
 			vector<float> data = odo_iner_kf(msg->odometry_accel[0], msg->odometry_accel[1], msg->odometry_gyro[2], 
 									msg->odometry_accel_uncertainty[0], msg->odometry_accel_uncertainty[1], msg->odometry_gyro_uncertainty[2]);
 									
-			IMU_Data.push_back(ORB_SLAM3::IMU::Point(nsg->accel[0], msg->accel[1], msg->accel[2], msg->gyro[0], msg->gyro[1], msg->gyro[2], (double)msg->utime / 1.0e9 - start_time));
+			IMU_Data.push_back(ORB_SLAM3::IMU::Point(msg->accel[0], msg->accel[1], msg->accel[2], msg->gyro[0], msg->gyro[1], msg->gyro[2], (double)msg->utime / 1.0e9 - start_time));
 		}
 };
 
